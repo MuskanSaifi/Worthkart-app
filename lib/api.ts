@@ -70,11 +70,76 @@ async function authedRequest<T>(path: string, token: string, init?: RequestInit)
 
 export async function fetchProducts(query = ""): Promise<Product[]> {
   const data = await request<ProductsResponse>(`/api/products?${query}`);
+  const { rememberProducts } = await import("./product-cache");
+  rememberProducts(data.products);
   return data.products || [];
 }
 
 export async function fetchProductsFull(query = ""): Promise<ProductsResponse> {
-  return request<ProductsResponse>(`/api/products?${query}`);
+  const data = await request<ProductsResponse>(`/api/products?${query}`);
+  const { rememberProducts } = await import("./product-cache");
+  rememberProducts(data.products);
+  return data;
+}
+
+export type ProductSuggestion = {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  mrp: number;
+  brand?: string | null;
+  image?: string | null;
+  category?: string | null;
+};
+
+export type SuggestResponse = {
+  products: ProductSuggestion[];
+  categories: { name: string; slug: string }[];
+  brands: { name: string }[];
+};
+
+export async function fetchProductSuggestions(q: string): Promise<SuggestResponse> {
+  const query = q.trim();
+  if (query.length < 2) {
+    return { products: [], categories: [], brands: [] };
+  }
+
+  try {
+    return await request<SuggestResponse>(
+      `/api/products/suggest?q=${encodeURIComponent(query)}`
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    // Older deploys may not have /suggest — fall back to product list
+    if (!/404|not found/i.test(msg)) {
+      return { products: [], categories: [], brands: [] };
+    }
+  }
+
+  try {
+    const data = await fetchProductsFull(
+      `search=${encodeURIComponent(query)}&limit=8&sort=best`
+    );
+    return {
+      products: (data.products || []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        price: p.price,
+        mrp: p.mrp,
+        brand: p.brand,
+        image: p.images?.[0]?.url || null,
+        category: p.category?.name || null,
+      })),
+      categories: (data.facets?.subcategories || [])
+        .slice(0, 4)
+        .map((c) => ({ name: c.name, slug: c.slug })),
+      brands: (data.facets?.brands || []).slice(0, 4).map((b) => ({ name: b.name })),
+    };
+  } catch {
+    return { products: [], categories: [], brands: [] };
+  }
 }
 
 export async function fetchProductBySlug(slug: string): Promise<{
@@ -82,7 +147,77 @@ export async function fetchProductBySlug(slug: string): Promise<{
   relatedProducts: Product[];
   similarProducts: Product[];
 }> {
-  return request(`/api/products/by-slug/${encodeURIComponent(slug)}`);
+  const { recallProductBySlug, rememberProduct, rememberProducts } = await import(
+    "./product-cache"
+  );
+
+  try {
+    const data = await request<{
+      product: Product;
+      relatedProducts: Product[];
+      similarProducts: Product[];
+    }>(`/api/products/by-slug/${encodeURIComponent(slug)}`);
+    rememberProduct(data.product);
+    rememberProducts(data.relatedProducts);
+    rememberProducts(data.similarProducts);
+    return data;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    // Prod may not have /by-slug yet (Next returns HTML 404 / Request failed (404))
+    if (!/404|not found/i.test(msg)) throw e;
+  }
+
+  const cached = recallProductBySlug(slug);
+  if (cached) {
+    const pool = await fetchCatalogPool();
+    return {
+      product: cached,
+      relatedProducts: pickRelated(pool, cached),
+      similarProducts: pickSimilar(pool, cached),
+    };
+  }
+
+  const pool = await fetchCatalogPool();
+  const product = pool.find((p) => p.slug === slug);
+  if (!product) {
+    throw new Error("Product not found");
+  }
+  rememberProduct(product);
+  return {
+    product,
+    relatedProducts: pickRelated(pool, product),
+    similarProducts: pickSimilar(pool, product),
+  };
+}
+
+async function fetchCatalogPool(): Promise<Product[]> {
+  const { rememberProducts } = await import("./product-cache");
+  const all: Product[] = [];
+  for (let page = 1; page <= 8; page++) {
+    const data = await request<ProductsResponse>(
+      `/api/products?limit=50&page=${page}&sort=best`
+    );
+    const batch = data.products || [];
+    rememberProducts(batch);
+    all.push(...batch);
+    if (batch.length < 50 || all.length >= (data.total || 0)) break;
+  }
+  return all;
+}
+
+function pickRelated(pool: Product[], product: Product): Product[] {
+  const cat = product.category?.slug;
+  return pool
+    .filter((p) => p.id !== product.id && (!cat || p.category?.slug === cat))
+    .slice(0, 10);
+}
+
+function pickSimilar(pool: Product[], product: Product): Product[] {
+  const brand = product.brand?.trim();
+  if (!brand) return [];
+  return pool
+    .filter((p) => p.id !== product.id && p.brand?.trim() === brand)
+    .slice(0, 10);
 }
 
 export async function fetchBanners(placement?: string): Promise<Banner[]> {
@@ -99,25 +234,71 @@ export async function fetchCategories(tree = false): Promise<Category[]> {
 
 export async function pingApi(): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/health`);
-    if (res.ok) return true;
+    // Prefer products: /api/health may be missing on older production deploys
     await fetchProducts("limit=1");
     return true;
   } catch {
-    return false;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/health`);
+      return res.ok;
+    } catch {
+      return false;
+    }
   }
 }
 
 export async function sendLoginOtp(phone: string) {
-  return request<{
-    success?: boolean;
-    type: "phone" | "email";
-    target: string;
-    devOtp?: string;
-  }>("/api/auth/login-otp/send", {
-    method: "POST",
-    body: JSON.stringify({ phone, accountType: "buyer" }),
-  });
+  // Prefer app-specific route (never requires prior registration).
+  // Fallbacks keep older deploys + shared website auth route working.
+  const paths = [
+    "/api/app/login-otp/send",
+    "/api/auth/login-otp/send",
+  ] as const;
+
+  let lastError: Error | null = null;
+  for (const path of paths) {
+    try {
+      return await request<{
+        success?: boolean;
+        type: "phone" | "email";
+        target: string;
+        devOtp?: string;
+      }>(path, {
+        method: "POST",
+        body: JSON.stringify({ phone, accountType: "buyer" }),
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      lastError = e instanceof Error ? e : new Error(msg || "Could not send OTP");
+      // Old live API still rejects new buyers — try next path / generic OTP
+      if (/not registered|create an account|404|not found/i.test(msg)) {
+        continue;
+      }
+      throw lastError;
+    }
+  }
+
+  // Last resort: generic OTP send (no register purpose = any phone OK)
+  try {
+    const data = await request<{
+      success?: boolean;
+      type?: "phone" | "email";
+      target?: string;
+      message?: string;
+      devOtp?: string;
+    }>("/api/otp/send", {
+      method: "POST",
+      body: JSON.stringify({ target: phone, type: "phone" }),
+    });
+    return {
+      success: data.success,
+      type: "phone" as const,
+      target: data.target || phone,
+      devOtp: data.devOtp,
+    };
+  } catch {
+    throw lastError || new Error("Could not send OTP");
+  }
 }
 
 export async function verifyOtp(params: {

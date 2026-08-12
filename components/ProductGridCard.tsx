@@ -3,9 +3,11 @@ import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { formatPrice } from "@/lib/format";
+import { rememberProduct } from "@/lib/product-cache";
 import type { Product } from "@/lib/types";
 import { colors } from "@/constants/theme";
 import { useShop } from "@/context/ShopContext";
+import { useEffect } from "react";
 
 const COL_W = Dimensions.get("window").width / 2;
 
@@ -20,6 +22,9 @@ export function ProductGridCard({
   const imageUrl = product.images?.[0]?.url;
   const { toggleWishlist, isWishlisted } = useShop();
   const wish = isWishlisted(product.id);
+  useEffect(() => {
+    rememberProduct(product);
+  }, [product]);
 
   return (
     <View style={[styles.card, { width: cardW }]}>

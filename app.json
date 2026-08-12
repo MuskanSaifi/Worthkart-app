@@ -2,7 +2,7 @@
   "expo": {
     "name": "WorthKart",
     "slug": "worth-kart",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "worthkart",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.worthkart.app",
-      "versionCode": 1,
+      "versionCode": 4,
       "adaptiveIcon": {
         "backgroundColor": "#5b21b6",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -43,11 +43,11 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiUrl": "http://192.168.1.150:3000",
+      "apiUrl": "https://worthkart.in",
       "eas": {
         "projectId": "ba4afee1-d6bc-4c1b-958f-1ad8d86b3806"
       }
     },
-    "owner": "nazimsaifi"
+    "owner": "nazim_saifi"
   }
 }

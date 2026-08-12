@@ -1,4 +1,6 @@
+import { Platform } from "react-native";
 import { useRouter } from "expo-router";
+import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -32,6 +34,20 @@ function toPhoneReachableUrl(url: string) {
   } catch {
     return url;
   }
+}
+
+function buildAppReturnUrl() {
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    return `${window.location.origin}/checkout-return`;
+  }
+  return Linking.createURL("checkout-return");
+}
+
+function buildPaymentReturnUrl() {
+  const appReturn = buildAppReturnUrl();
+  const base = `${API_BASE_URL}/app-pay/return`;
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}app_return=${encodeURIComponent(appReturn)}`;
 }
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -155,7 +171,7 @@ export default function CheckoutScreen() {
       const order = await createAppOrder(user.token, {
         addressId: selectedAddress,
         paymentMethod,
-        returnUrl: `${API_BASE_URL}/app-pay/return`,
+        returnUrl: buildPaymentReturnUrl(),
         items: cart.map((line) => ({
           productId: line.product.id,
           quantity: line.quantity,
@@ -174,7 +190,15 @@ export default function CheckoutScreen() {
       }
 
       const paymentUrl = toPhoneReachableUrl(order.paymentPageUrl);
-      // openBrowserAsync avoids Expo "use localhost to Sign In" auth dialog
+
+      if (Platform.OS === "web") {
+        // Same-tab open so Cashfree JS SDK / redirects work (popup often breaks session)
+        if (typeof window !== "undefined") {
+          window.location.assign(paymentUrl);
+          return;
+        }
+      }
+
       await WebBrowser.openBrowserAsync(paymentUrl, {
         dismissButtonStyle: "close",
         enableBarCollapsing: false,

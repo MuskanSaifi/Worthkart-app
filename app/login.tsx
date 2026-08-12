@@ -71,11 +71,13 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const data = await sendLoginOtp(cleaned);
-      setTarget(data.target || cleaned);
+      // Always use normalized phone — never empty / mismatched target
+      const nextTarget = (data.target || cleaned).replace(/\D/g, "").slice(-10);
+      setTarget(nextTarget);
       setDevOtp(data.devOtp || "");
       setStep("otp");
       if (data.devOtp) notify.info("Dev OTP", `Your OTP is ${data.devOtp}`);
-      else notify.success("OTP sent", `Sent to ${data.target || cleaned}`);
+      else notify.success("OTP sent", `Sent to ${nextTarget}`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Could not send OTP";
       notify.error("Login failed", msg);
@@ -85,14 +87,21 @@ export default function LoginScreen() {
   };
 
   const onVerify = async () => {
-    if (otp.length < 4) {
+    const cleanedOtp = otp.replace(/\D/g, "");
+    const phoneTarget = (target || cleaned).replace(/\D/g, "").slice(-10);
+    if (phoneTarget.length !== 10) {
+      notify.error("Invalid number", "Request OTP again");
+      setStep("phone");
+      return;
+    }
+    if (cleanedOtp.length < 4) {
       notify.error("Invalid OTP", "Enter the OTP you received");
       return;
     }
     setLoading(true);
     try {
-      await verifyOtp({ target, type: "phone", code: otp });
-      const session = await createAppSession(target);
+      await verifyOtp({ target: phoneTarget, type: "phone", code: cleanedOtp });
+      const session = await createAppSession(phoneTarget);
       await login({
         id: session.user.id,
         phone: session.user.phone,
@@ -100,7 +109,7 @@ export default function LoginScreen() {
         token: session.token,
         loggedInAt: new Date().toISOString(),
       });
-      notify.success("Logged in", `Welcome ${target}`);
+      notify.success("Logged in", `Welcome ${phoneTarget}`);
       finish();
     } catch (e) {
       notify.error("OTP failed", e instanceof Error ? e.message : "Invalid OTP");
@@ -159,12 +168,12 @@ export default function LoginScreen() {
             <Text style={styles.label}>Enter OTP</Text>
             <TextInput
               value={otp}
-              onChangeText={setOtp}
+              onChangeText={(t) => setOtp(t.replace(/\D/g, "").slice(0, 8))}
               keyboardType="number-pad"
               placeholder="Enter OTP"
               placeholderTextColor={colors.muted}
               style={styles.input}
-              maxLength={6}
+              maxLength={8}
             />
             <Pressable style={styles.btn} onPress={onVerify} disabled={loading}>
               {loading ? (
@@ -180,7 +189,9 @@ export default function LoginScreen() {
         )}
 
         <View style={styles.footer}>
-          <Text style={styles.footerMuted}>Same number works for shopping</Text>
+          <Text style={styles.footerMuted}>
+            No signup needed — OTP creates your buyer account. Profile details later.
+          </Text>
           <Text style={styles.footerMuted}>Need Seller Hub?</Text>
           <Link href="/seller/login" asChild>
             <Pressable>

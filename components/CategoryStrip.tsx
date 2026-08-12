@@ -34,7 +34,7 @@ export function CategoryStrip() {
 
   const items: Category[] =
     cats.length > 0
-      ? [{ id: "offer", name: "Offer Zone", slug: "__deal__", image: null }, ...cats]
+      ? [{ id: "offer", name: "Offers", slug: "__deal__", image: null }, ...cats]
       : (FALLBACK as Category[]);
 
   return (
@@ -44,25 +44,23 @@ export function CategoryStrip() {
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
           {items.map((cat) => {
-            const href =
-              cat.slug === "__deal__" || cat.slug === "deal"
-                ? "/search?deal=true"
-                : `/search?category=${cat.slug}`;
+            const isOffer = cat.slug === "__deal__" || cat.slug === "deal";
+            const href = isOffer ? "/search?deal=true" : `/search?category=${cat.slug}`;
             return (
               <Link key={cat.id} href={href as `/search`} asChild>
-                <Pressable style={styles.item}>
-                  <View style={[styles.icon, cat.slug === "__deal__" && styles.offerIcon]}>
+                <Pressable style={[styles.item, isOffer && styles.offerItem]}>
+                  <View style={[styles.icon, isOffer && styles.offerIcon]}>
                     {cat.image ? (
                       <Image source={{ uri: cat.image }} style={styles.image} />
                     ) : (
-                      <Text style={styles.initial}>
-                        {cat.slug === "__deal__" ? "%" : cat.name.charAt(0)}
+                      <Text style={[styles.initial, isOffer && styles.offerInitial]}>
+                        {isOffer ? "%" : cat.name.charAt(0)}
                       </Text>
                     )}
                   </View>
                   <Text
-                    numberOfLines={2}
-                    style={[styles.label, cat.slug === "__deal__" && styles.offerLabel]}
+                    numberOfLines={1}
+                    style={[styles.label, isOffer && styles.offerLabel]}
                   >
                     {cat.name}
                   </Text>
@@ -85,11 +83,15 @@ const styles = StyleSheet.create({
   },
   row: {
     paddingHorizontal: 10,
+    alignItems: "flex-start",
   },
   item: {
-    width: 72,
+    width: 76,
     alignItems: "center",
     marginHorizontal: 4,
+  },
+  offerItem: {
+    width: 78,
   },
   icon: {
     width: 54,
@@ -103,6 +105,8 @@ const styles = StyleSheet.create({
   },
   offerIcon: {
     backgroundColor: "#fee2e2",
+    borderWidth: 1.5,
+    borderColor: "#fecaca",
   },
   image: {
     width: "100%",
@@ -113,14 +117,20 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: colors.primary,
   },
+  offerInitial: {
+    color: "#e11d48",
+  },
   label: {
     fontSize: 11,
     textAlign: "center",
     color: colors.foreground,
     fontWeight: "600",
     lineHeight: 14,
+    width: "100%",
+    paddingHorizontal: 2,
   },
   offerLabel: {
-    color: "#ff4747",
+    color: "#e11d48",
+    fontWeight: "800",
   },
 });

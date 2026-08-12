@@ -4,9 +4,11 @@ import { Link } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatPrice } from "@/lib/format";
 import { notify } from "@/lib/notify";
+import { rememberProduct } from "@/lib/product-cache";
 import type { Product } from "@/lib/types";
 import { colors } from "@/constants/theme";
 import { useShop } from "@/context/ShopContext";
+import { useEffect } from "react";
 
 export function ProductCard({
   product,
@@ -18,6 +20,9 @@ export function ProductCard({
   const imageUrl = product.images?.[0]?.url;
   const { addToCart, toggleWishlist, isWishlisted } = useShop();
   const wish = isWishlisted(product.id);
+  useEffect(() => {
+    rememberProduct(product);
+  }, [product]);
 
   return (
     <View style={[styles.card, wide && styles.cardWide]}>
