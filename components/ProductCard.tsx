@@ -4,11 +4,15 @@ import { Link } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { formatPrice } from "@/lib/format";
 import { notify } from "@/lib/notify";
+import {
+  pickProductImageUrl,
+  PRODUCT_IMAGE_PLACEHOLDER,
+} from "@/lib/product-images";
 import { rememberProduct } from "@/lib/product-cache";
 import type { Product } from "@/lib/types";
 import { colors } from "@/constants/theme";
 import { useShop } from "@/context/ShopContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export function ProductCard({
   product,
@@ -17,10 +21,11 @@ export function ProductCard({
   product: Product;
   wide?: boolean;
 }) {
-  const imageUrl = product.images?.[0]?.url;
+  const [imageUrl, setImageUrl] = useState(() => pickProductImageUrl(product.images));
   const { addToCart, toggleWishlist, isWishlisted } = useShop();
   const wish = isWishlisted(product.id);
   useEffect(() => {
+    setImageUrl(pickProductImageUrl(product.images));
     rememberProduct(product);
   }, [product]);
 
@@ -34,11 +39,12 @@ export function ProductCard({
                 <Text style={styles.badgeText}>{product.discount}% OFF</Text>
               </View>
             ) : null}
-            {imageUrl ? (
-              <Image source={{ uri: imageUrl }} style={styles.image} contentFit="contain" />
-            ) : (
-              <View style={[styles.image, styles.placeholder]} />
-            )}
+            <Image
+              source={{ uri: imageUrl }}
+              style={styles.image}
+              contentFit="contain"
+              onError={() => setImageUrl(PRODUCT_IMAGE_PLACEHOLDER)}
+            />
           </View>
           <Text numberOfLines={2} style={styles.name}>
             {product.name}

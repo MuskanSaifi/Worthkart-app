@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "./config";
+import { pickProductImageUrl } from "./product-images";
 import type { Address, Banner, Category, Order, Product } from "./types";
 
 type Json = Record<string, unknown>;
@@ -129,7 +130,7 @@ export async function fetchProductSuggestions(q: string): Promise<SuggestRespons
         price: p.price,
         mrp: p.mrp,
         brand: p.brand,
-        image: p.images?.[0]?.url || null,
+        image: pickProductImageUrl(p.images),
         category: p.category?.name || null,
       })),
       categories: (data.facets?.subcategories || [])

@@ -3,11 +3,12 @@ import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { formatPrice } from "@/lib/format";
+import { pickProductImageUrl, PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/product-images";
 import { rememberProduct } from "@/lib/product-cache";
 import type { Product } from "@/lib/types";
 import { colors } from "@/constants/theme";
 import { useShop } from "@/context/ShopContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const COL_W = Dimensions.get("window").width / 2;
 
@@ -19,10 +20,11 @@ export function ProductGridCard({
   width?: number;
 }) {
   const cardW = width ?? COL_W;
-  const imageUrl = product.images?.[0]?.url;
+  const [imageUrl, setImageUrl] = useState(() => pickProductImageUrl(product.images));
   const { toggleWishlist, isWishlisted } = useShop();
   const wish = isWishlisted(product.id);
   useEffect(() => {
+    setImageUrl(pickProductImageUrl(product.images));
     rememberProduct(product);
   }, [product]);
 
@@ -31,11 +33,12 @@ export function ProductGridCard({
       <Link href={`/product/${product.slug}`} asChild>
         <Pressable>
           <View style={[styles.imageWrap, { height: cardW * 1.15 }]}>
-            {imageUrl ? (
-              <Image source={{ uri: imageUrl }} style={styles.image} contentFit="cover" />
-            ) : (
-              <View style={[styles.image, styles.placeholder]} />
-            )}
+            <Image
+              source={{ uri: imageUrl }}
+              style={styles.image}
+              contentFit="cover"
+              onError={() => setImageUrl(PRODUCT_IMAGE_PLACEHOLDER)}
+            />
             {product.discount > 0 ? (
               <View style={styles.offBadge}>
                 <Text style={styles.offText}>{product.discount}% off</Text>

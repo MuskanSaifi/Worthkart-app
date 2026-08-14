@@ -20,6 +20,7 @@ import type { Product } from "@/lib/types";
 import { colors } from "@/constants/theme";
 import { useShop } from "@/context/ShopContext";
 import Toast from "react-native-toast-message";
+import { pickProductImageUrl, PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/product-images";
 
 function Rail({ title, products }: { title: string; products: Product[] }) {
   if (!products.length) return null;
@@ -47,6 +48,7 @@ export default function ProductDetailScreen() {
   const [recent, setRecent] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [imageUrl, setImageUrl] = useState(PRODUCT_IMAGE_PLACEHOLDER);
 
   useEffect(() => {
     if (!slug) return;
@@ -56,6 +58,7 @@ export default function ProductDetailScreen() {
       .then(async (data) => {
         if (!alive) return;
         setProduct(data.product);
+        setImageUrl(pickProductImageUrl(data.product.images));
         setRelated(data.relatedProducts || []);
         setSimilar(data.similarProducts || []);
         await addRecentlyViewed(data.product);
@@ -91,7 +94,6 @@ export default function ProductDetailScreen() {
     );
   }
 
-  const imageUrl = product.images?.[0]?.url;
   const wish = isWishlisted(product.id);
   const savings =
     product.mrp > product.price ? product.mrp - product.price : 0;
@@ -100,11 +102,12 @@ export default function ProductDetailScreen() {
     <View style={styles.page}>
       <AppHeader showBack showSearch={false} title="Product" />
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
-        {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.image} contentFit="contain" />
-        ) : (
-          <View style={[styles.image, styles.placeholder]} />
-        )}
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.image}
+          contentFit="contain"
+          onError={() => setImageUrl(PRODUCT_IMAGE_PLACEHOLDER)}
+        />
 
         <View style={styles.body}>
           {product.brand ? <Text style={styles.brand}>{product.brand}</Text> : null}
