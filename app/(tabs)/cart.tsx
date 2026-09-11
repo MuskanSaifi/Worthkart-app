@@ -41,7 +41,7 @@ export default function CartScreen() {
         </View>
       ) : (
         <>
-          <ScrollView contentContainerStyle={styles.list}>
+          <ScrollView contentContainerStyle={[styles.list, { paddingBottom: 24 }]}>
             {cart.map((line) => {
               const img = line.product.images?.[0]?.url;
               return (
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   shopBtnText: { color: colors.white, fontWeight: "700" },
-  list: { padding: 14, paddingBottom: 120 },
+  list: { padding: 14, paddingBottom: 24 },
   card: {
     flexDirection: "row",
     gap: 12,
@@ -166,10 +166,6 @@ const styles = StyleSheet.create({
   remove: { marginLeft: "auto", padding: 6 },
   clear: { textAlign: "center", color: colors.danger, fontWeight: "600", marginTop: 8 },
   footer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.border,

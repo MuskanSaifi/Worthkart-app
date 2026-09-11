@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { AppHeader } from "@/components/AppHeader";
+import { BottomDock } from "@/components/BottomDock";
 import { useAuth } from "@/context/AuthContext";
 import { useShop } from "@/context/ShopContext";
 import { formatPrice } from "@/lib/format";
@@ -20,6 +21,7 @@ import { API_BASE_URL, createAppAddress, createAppOrder, fetchAppAddresses } fro
 import type { Address } from "@/lib/types";
 import { colors } from "@/constants/theme";
 import { notify } from "@/lib/notify";
+import { useBottomInset } from "@/lib/safe-layout";
 
 /** Phone cannot open localhost — rewrite to the LAN API host the app already uses. */
 function toPhoneReachableUrl(url: string) {
@@ -51,6 +53,7 @@ function buildPaymentReturnUrl() {
 }
 export default function CheckoutScreen() {
   const router = useRouter();
+  const bottom = useBottomInset();
   const { isLoggedIn, ready, user, logout } = useAuth();
   const { cart, cartTotal, clearCart } = useShop();
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -226,7 +229,7 @@ export default function CheckoutScreen() {
       <FlatList
         data={cart}
         keyExtractor={(item) => item.product.id}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: 100 + bottom }]}
         ListHeaderComponent={
           <>
         <View style={styles.card}>
@@ -373,7 +376,7 @@ export default function CheckoutScreen() {
         )}
       />
 
-      <View style={styles.footer}>
+      <BottomDock>
         <Pressable style={styles.btn} onPress={placeOrder} disabled={placing || cart.length === 0 || !selectedAddress}>
           {placing ? (
             <ActivityIndicator color={colors.white} />
@@ -387,7 +390,7 @@ export default function CheckoutScreen() {
             </Text>
           )}
         </Pressable>
-      </View>
+      </BottomDock>
     </View>
   );
 }
@@ -478,16 +481,6 @@ const styles = StyleSheet.create({
   },
   totalLabel: { fontWeight: "800", color: colors.foreground },
   totalValue: { fontWeight: "800", fontSize: 16, color: colors.primary },
-  footer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    padding: 14,
-    backgroundColor: colors.card,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
   btn: {
     backgroundColor: colors.accent,
     borderRadius: 10,

@@ -111,7 +111,7 @@ export default function CategoriesScreen() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
-  list: { padding: 16, paddingBottom: 32 },
+  list: { padding: 16, paddingBottom: 24 },
   error: { color: colors.danger, textAlign: "center", marginTop: 40 },
   offerCard: {
     flexDirection: "row",

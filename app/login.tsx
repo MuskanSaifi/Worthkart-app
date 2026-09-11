@@ -15,9 +15,11 @@ import { createAppSession, sendLoginOtp, verifyOtp } from "@/lib/api";
 import { safeBack } from "@/lib/navigation";
 import { colors } from "@/constants/theme";
 import { notify } from "@/lib/notify";
+import { useBottomInset } from "@/lib/safe-layout";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const bottom = useBottomInset();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
   const { isLoggedIn, ready, login, user } = useAuth();
   const [phone, setPhone] = useState("");
@@ -130,7 +132,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.page}>
       <AppHeader showBack showSearch={false} title="Buyer Login" />
-      <View style={styles.body}>
+      <View style={[styles.body, { paddingBottom: 24 + bottom }]}>
         <View style={styles.hero}>
           <FontAwesome name="mobile" size={28} color={colors.primary} />
           <Text style={styles.heroTitle}>Welcome Back</Text>

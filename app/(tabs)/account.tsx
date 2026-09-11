@@ -1,6 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import {
   Dimensions,
   Pressable,
@@ -14,6 +15,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import { useShop } from "@/context/ShopContext";
 import { colors } from "@/constants/theme";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const SCREEN_W = Dimensions.get("window").width;
 const SIDE = 16;
@@ -103,7 +105,7 @@ export default function AccountScreen() {
     <View style={styles.page}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
       >
         <LinearGradient
           colors={[colors.primaryDark, colors.primary]}
@@ -111,6 +113,7 @@ export default function AccountScreen() {
           end={{ x: 1, y: 1 }}
           style={[styles.hero, { paddingTop: insets.top + 16 }]}
         >
+          <StatusBar style="light" />
           <Text style={styles.heroEyebrow}>MY ACCOUNT</Text>
           <Text style={styles.heroTitle}>
             {isLoggedIn ? "Welcome back" : "Hello, Shopper"}
@@ -239,7 +242,7 @@ export default function AccountScreen() {
             ))}
           </View>
 
-          <Text style={styles.footerBrand}>WorthKart</Text>
+          <BrandLogo height={32} style={styles.footerLogo} />
           <Text style={styles.footerSub}>Worth every cart · App v1.0</Text>
         </View>
       </ScrollView>
@@ -421,12 +424,9 @@ const styles = StyleSheet.create({
     color: colors.muted,
     lineHeight: 16,
   },
-  footerBrand: {
+  footerLogo: {
     marginTop: 28,
-    textAlign: "center",
-    fontSize: 14,
-    fontWeight: "800",
-    color: colors.primary,
+    alignSelf: "center",
   },
   footerSub: {
     marginTop: 4,

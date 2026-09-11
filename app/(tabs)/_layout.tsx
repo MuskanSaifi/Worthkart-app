@@ -1,31 +1,41 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Tabs } from "expo-router";
 import { colors } from "@/constants/theme";
+import { TAB_BAR_BODY, useBottomInset } from "@/lib/safe-layout";
 
 function TabIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>["name"];
   color: string;
 }) {
-  return <FontAwesome size={20} style={{ marginBottom: -1 }} {...props} />;
+  return <FontAwesome size={20} {...props} />;
 }
 
 export default function TabLayout() {
+  const bottom = useBottomInset();
+
   return (
     <Tabs
+      safeAreaInsets={{ bottom: 0 }}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: "#7c3aed",
         tabBarInactiveTintColor: colors.muted,
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.border,
-          height: 62,
-          paddingBottom: 8,
+          height: TAB_BAR_BODY + bottom,
           paddingTop: 6,
+          paddingBottom: bottom,
+          elevation: 12,
+        },
+        tabBarItemStyle: {
+          height: TAB_BAR_BODY - 8,
         },
         tabBarLabelStyle: {
           fontSize: 10,
           fontWeight: "700",
+          marginTop: 2,
         },
       }}
     >

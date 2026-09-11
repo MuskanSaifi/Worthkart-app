@@ -13,6 +13,15 @@ const LOCAL_FALLBACK = "http://localhost:3000";
 const envUrl = (process.env.EXPO_PUBLIC_API_URL || "").trim();
 const extraUrl = ((Constants.expoConfig?.extra?.apiUrl as string | undefined) || "").trim();
 
+function normalizeApiUrl(url: string) {
+  const trimmed = url.replace(/\/$/, "");
+  // Expo Go QR / Metro is :8081. WorthKart API is Next.js :3000.
+  if (/:8081$/i.test(trimmed)) {
+    return trimmed.replace(/:8081$/i, ":3000");
+  }
+  return trimmed;
+}
+
 function pickApiUrl() {
   if (!__DEV__) {
     return envUrl || extraUrl || PRODUCTION_API_URL;
@@ -25,7 +34,7 @@ function pickApiUrl() {
   return envUrl || LOCAL_FALLBACK;
 }
 
-export const API_BASE_URL = pickApiUrl().replace(/\/$/, "");
+export const API_BASE_URL = normalizeApiUrl(pickApiUrl());
 
 export const IS_PRODUCTION_API = /worthkart\.in$/i.test(
   API_BASE_URL.replace(/^https?:\/\//, "").split("/")[0] || ""

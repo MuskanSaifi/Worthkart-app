@@ -8,16 +8,18 @@ import {
   View,
 } from "react-native";
 import { useRouter, Link } from "expo-router";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { AppHeader } from "@/components/AppHeader";
 import { useSeller } from "@/context/SellerContext";
 import { createSellerSession, sendSellerLoginOtp } from "@/lib/seller-api";
 import { verifyOtp } from "@/lib/api";
 import { colors } from "@/constants/theme";
+import { BrandLogo } from "@/components/BrandLogo";
 import { notify } from "@/lib/notify";
+import { useBottomInset } from "@/lib/safe-layout";
 
 export default function SellerLoginScreen() {
   const router = useRouter();
+  const bottom = useBottomInset();
   const { loginSeller } = useSeller();
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -85,10 +87,10 @@ export default function SellerLoginScreen() {
   return (
     <View style={styles.page}>
       <AppHeader showBack showSearch={false} title="Seller Login" />
-      <View style={styles.body}>
+      <View style={[styles.body, { paddingBottom: 24 + bottom }]}>
         <View style={styles.hero}>
-          <FontAwesome name="briefcase" size={28} color={colors.primary} />
-          <Text style={styles.heroTitle}>WorthKart Seller Hub</Text>
+          <BrandLogo height={44} />
+          <Text style={styles.heroTitle}>Seller Hub</Text>
           <Text style={styles.heroSub}>Login with your registered mobile number</Text>
         </View>
 

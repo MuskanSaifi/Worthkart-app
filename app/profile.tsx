@@ -15,9 +15,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import { colors } from "@/constants/theme";
 import { notify } from "@/lib/notify";
+import { useBottomInset } from "@/lib/safe-layout";
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const bottom = useBottomInset();
   const { isLoggedIn, ready, user, login, logout } = useAuth();
   const confirm = useConfirm();
   const [name, setName] = useState(user?.name || "");
@@ -61,7 +63,7 @@ export default function ProfileScreen() {
   return (
     <View style={styles.page}>
       <AppHeader showBack showSearch={false} title="My Profile" />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 40 + bottom }]}>
         <View style={styles.hero}>
           <View style={styles.avatar}>
             <FontAwesome name="user" size={32} color={colors.primary} />

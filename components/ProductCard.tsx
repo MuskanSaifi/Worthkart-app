@@ -31,9 +31,9 @@ export function ProductCard({
 
   return (
     <View style={[styles.card, wide && styles.cardWide]}>
-      <Link href={`/product/${product.slug}`} asChild>
-        <Pressable>
-          <View style={styles.imageWrap}>
+      <View style={styles.imageWrap}>
+        <Link href={`/product/${product.slug}`} asChild>
+          <Pressable>
             {product.discount > 0 ? (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{product.discount}% OFF</Text>
@@ -45,7 +45,24 @@ export function ProductCard({
               contentFit="contain"
               onError={() => setImageUrl(PRODUCT_IMAGE_PLACEHOLDER)}
             />
-          </View>
+          </Pressable>
+        </Link>
+        <Pressable
+          style={styles.wishBtn}
+          onPress={() => toggleWishlist(product)}
+          hitSlop={6}
+          accessibilityLabel={wish ? "Remove from wishlist" : "Add to wishlist"}
+        >
+          <FontAwesome
+            name={wish ? "heart" : "heart-o"}
+            size={13}
+            color={wish ? colors.danger : "#9ca3af"}
+          />
+        </Pressable>
+      </View>
+
+      <Link href={`/product/${product.slug}`} asChild>
+        <Pressable>
           <Text numberOfLines={2} style={styles.name}>
             {product.name}
           </Text>
@@ -56,50 +73,39 @@ export function ProductCard({
             ) : null}
           </View>
           {product.rating > 0 ? (
-            <View style={styles.ratingPill}>
-              <Text style={styles.ratingText}>
-                ★ {product.rating.toFixed(1)}
-              </Text>
-              <Text style={styles.reviewCount}>({product.reviewCount})</Text>
+            <View style={styles.ratingRow}>
+              <FontAwesome name="star" size={10} color={colors.success} />
+              <Text style={styles.ratingText}>{product.rating.toFixed(1)}</Text>
+              {product.reviewCount > 0 ? (
+                <Text style={styles.reviewCount}>({product.reviewCount})</Text>
+              ) : null}
             </View>
           ) : null}
         </Pressable>
       </Link>
 
-      <View style={styles.actions}>
-        <Pressable
-          style={styles.wishBtn}
-          onPress={() => toggleWishlist(product)}
-          hitSlop={6}
-        >
-          <FontAwesome
-            name={wish ? "heart" : "heart-o"}
-            size={16}
-            color={wish ? colors.danger : colors.muted}
-          />
-        </Pressable>
-        <Pressable
-          style={styles.cartBtn}
-          onPress={() => {
-            addToCart(product);
-            notify.success("Added to cart", product.name);
-          }}
-        >
-          <Text style={styles.cartBtnText}>Add</Text>
-        </Pressable>
-      </View>
+      <Pressable
+        style={styles.cartBtn}
+        onPress={() => {
+          addToCart(product);
+          notify.success("Added to cart", product.name);
+        }}
+      >
+        <FontAwesome name="shopping-cart" size={12} color={colors.primary} />
+        <Text style={styles.cartBtnText}>Add to Cart</Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    width: 168,
+    width: 148,
     backgroundColor: colors.card,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 10,
+    padding: 8,
     marginRight: 10,
   },
   cardWide: {
@@ -108,18 +114,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   imageWrap: {
-    height: 140,
+    height: 118,
     marginBottom: 8,
     position: "relative",
   },
   image: {
     width: "100%",
-    height: "100%",
-    borderRadius: 8,
+    height: 118,
+    borderRadius: 10,
     backgroundColor: "#fafafa",
-  },
-  placeholder: {
-    backgroundColor: "#eee",
   },
   badge: {
     position: "absolute",
@@ -127,21 +130,38 @@ const styles = StyleSheet.create({
     left: 6,
     zIndex: 1,
     backgroundColor: "#ec4899",
-    borderRadius: 4,
+    borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
   badgeText: {
     color: colors.white,
-    fontSize: 10,
-    fontWeight: "700",
+    fontSize: 9,
+    fontWeight: "800",
+  },
+  wishBtn: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    zIndex: 2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
   },
   name: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.foreground,
     fontWeight: "600",
-    minHeight: 34,
-    lineHeight: 17,
+    minHeight: 32,
+    lineHeight: 16,
   },
   priceRow: {
     flexDirection: "row",
@@ -150,60 +170,44 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   price: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "800",
     color: colors.foreground,
   },
   mrp: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.muted,
     textDecorationLine: "line-through",
   },
-  ratingPill: {
-    marginTop: 6,
+  ratingRow: {
+    marginTop: 4,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
   },
   ratingText: {
     fontSize: 11,
-    color: colors.white,
-    backgroundColor: colors.success,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    color: colors.foreground,
     fontWeight: "700",
-    overflow: "hidden",
   },
   reviewCount: {
     fontSize: 11,
     color: colors.muted,
   },
-  actions: {
+  cartBtn: {
     marginTop: 10,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-  },
-  wishBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
     justifyContent: "center",
-  },
-  cartBtn: {
-    flex: 1,
-    backgroundColor: colors.primary,
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
     borderRadius: 8,
     paddingVertical: 8,
-    alignItems: "center",
   },
   cartBtnText: {
-    color: colors.white,
+    color: colors.primary,
     fontWeight: "700",
-    fontSize: 13,
+    fontSize: 12,
   },
 });

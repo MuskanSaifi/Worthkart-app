@@ -1,3 +1,4 @@
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Link } from "expo-router";
@@ -13,6 +14,10 @@ type Props = {
   showTimer?: boolean;
 };
 
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
+
 export function ProductSection({
   title,
   fetchQuery,
@@ -22,7 +27,7 @@ export function ProductSection({
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [timeLeft, setTimeLeft] = useState({ h: 8, m: 24, s: 17 });
+  const [timeLeft, setTimeLeft] = useState({ h: 8, m: 17, s: 39 });
 
   useEffect(() => {
     let alive = true;
@@ -76,21 +81,21 @@ export function ProductSection({
   return (
     <View style={styles.section}>
       <View style={styles.header}>
-        <View style={styles.titleWrap}>
-          <Text style={styles.title}>{title}</Text>
-          {showTimer ? (
-            <Text style={styles.timer}>
-              Ends in{" "}
-              <Text style={styles.timerValue}>
-                {String(timeLeft.h).padStart(2, "0")} : {String(timeLeft.m).padStart(2, "0")} :{" "}
-                {String(timeLeft.s).padStart(2, "0")}
-              </Text>
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+        {showTimer ? (
+          <View style={styles.timer}>
+            <FontAwesome name="clock-o" size={12} color="#db2777" />
+            <Text style={styles.timerValue}>
+              {pad(timeLeft.h)} : {pad(timeLeft.m)} : {pad(timeLeft.s)} left
             </Text>
-          ) : null}
-        </View>
+          </View>
+        ) : null}
         <Link href={viewAllHref as `/search`} asChild>
-          <Pressable>
+          <Pressable style={styles.viewAllBtn} hitSlop={8}>
             <Text style={styles.viewAll}>View All</Text>
+            <FontAwesome name="arrow-right" size={10} color={colors.primary} />
           </Pressable>
         </Link>
       </View>
@@ -115,7 +120,7 @@ export function ProductSection({
 const styles = StyleSheet.create({
   section: {
     backgroundColor: colors.card,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
     padding: 14,
@@ -123,29 +128,41 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    gap: 8,
     marginBottom: 12,
   },
-  titleWrap: { flex: 1, paddingRight: 8 },
   title: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "800",
     color: colors.foreground,
+    flexShrink: 0,
   },
   timer: {
-    marginTop: 4,
-    fontSize: 12,
-    color: colors.muted,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#fce7f3",
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    flexShrink: 1,
   },
   timerValue: {
-    color: colors.danger,
-    fontWeight: "700",
+    color: "#db2777",
+    fontWeight: "800",
+    fontSize: 11,
+  },
+  viewAllBtn: {
+    marginLeft: "auto",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   viewAll: {
     color: colors.primary,
     fontWeight: "700",
-    fontSize: 13,
+    fontSize: 12,
   },
   error: {
     color: colors.danger,

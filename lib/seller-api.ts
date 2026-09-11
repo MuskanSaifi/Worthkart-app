@@ -342,3 +342,14 @@ export async function downloadSellerLabel(token: string, orderItemId: string) {
   });
 }
 
+export async function simulateSellerCourierDelivered(token: string, orderItemId: string) {
+  return sellerRequest<{ success: boolean; status: string }>(
+    "/api/seller/orders",
+    token,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ action: "simulate_courier_delivered", orderItemId }),
+    }
+  );
+}
+

@@ -62,6 +62,12 @@ export function OrderListCard({ order, onDownloadInvoice, invoiceLoading }: Prop
         </View>
       ) : null}
 
+      {order.status === "OUT_FOR_DELIVERY" ? (
+        <Text style={styles.otpHint}>
+          Out for delivery — confirm with the OTP sent to your phone when the courier arrives.
+        </Text>
+      ) : null}
+
       {order.items.map((item, index) => {
         const img = item.product.images?.[0]?.url;
         return (
@@ -81,6 +87,11 @@ export function OrderListCard({ order, onDownloadInvoice, invoiceLoading }: Prop
                 {item.product.name}
               </Text>
               <Text style={styles.lineQty}>Qty: {item.quantity}</Text>
+              {item.awbCode ? (
+                <Text style={styles.lineAwb}>
+                  {item.courierName || "Courier"} · AWB {item.awbCode}
+                </Text>
+              ) : null}
             </View>
             <Text style={styles.linePrice}>{formatPrice(item.price * item.quantity)}</Text>
           </View>
@@ -154,6 +165,15 @@ const styles = StyleSheet.create({
   lineInfo: { flex: 1, minWidth: 0 },
   lineName: { fontSize: 13, color: colors.foreground },
   lineQty: { fontSize: 11, color: colors.muted, marginTop: 2 },
+  lineAwb: { fontSize: 10, color: colors.primary, fontWeight: "700", marginTop: 2 },
+  otpHint: {
+    marginTop: 4,
+    marginBottom: 8,
+    fontSize: 11,
+    color: "#c2410c",
+    fontWeight: "600",
+    lineHeight: 15,
+  },
   linePrice: { fontSize: 13, fontWeight: "700", color: colors.foreground },
   totalRow: {
     flexDirection: "row",

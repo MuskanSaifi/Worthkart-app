@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { AppHeader } from "@/components/AppHeader";
+import { BottomDock } from "@/components/BottomDock";
 import { ProductGridCard } from "@/components/ProductGridCard";
 import { fetchProductBySlug } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
@@ -19,6 +20,7 @@ import { addRecentlyViewed, getRecentlyViewed } from "@/lib/recently-viewed";
 import type { Product } from "@/lib/types";
 import { colors } from "@/constants/theme";
 import { useShop } from "@/context/ShopContext";
+import { useBottomInset } from "@/lib/safe-layout";
 import Toast from "react-native-toast-message";
 import { pickProductImageUrl, PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/product-images";
 
@@ -41,6 +43,7 @@ function Rail({ title, products }: { title: string; products: Product[] }) {
 export default function ProductDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
+  const bottom = useBottomInset();
   const { addToCart, toggleWishlist, isWishlisted } = useShop();
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
@@ -101,7 +104,7 @@ export default function ProductDetailScreen() {
   return (
     <View style={styles.page}>
       <AppHeader showBack showSearch={false} title="Product" />
-      <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 110 + bottom }}>
         <Image
           source={{ uri: imageUrl }}
           style={styles.image}
@@ -168,7 +171,7 @@ export default function ProductDetailScreen() {
         <Rail title="Recently viewed" products={recent} />
       </ScrollView>
 
-      <View style={styles.footer}>
+      <BottomDock style={styles.footerInner}>
         <Pressable style={styles.wishBtn} onPress={() => toggleWishlist(product)}>
           <FontAwesome
             name={wish ? "heart" : "heart-o"}
@@ -203,7 +206,7 @@ export default function ProductDetailScreen() {
         >
           <Text style={styles.buyText}>Buy Now</Text>
         </Pressable>
-      </View>
+      </BottomDock>
     </View>
   );
 }
@@ -259,15 +262,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: colors.foreground,
   },
-  footer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.card,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    padding: 12,
+  footerInner: {
     flexDirection: "row",
     gap: 8,
     alignItems: "center",

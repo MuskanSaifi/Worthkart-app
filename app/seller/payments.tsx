@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { useSeller } from "@/context/SellerContext";
 import { fetchSellerExtras, type SellerExtras } from "@/lib/seller-api";
 import { formatPrice } from "@/lib/format";
@@ -44,8 +45,9 @@ export default function SellerPaymentsScreen() {
   const commission = data?.commissionPercent ?? 10;
 
   return (
-    <View style={[styles.page, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
+    <View style={styles.page}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <StatusBar style="light" />
         <Text style={styles.title}>Payments</Text>
         <Text style={styles.sub}>Settled after delivery · weekly payout</Text>
       </View>
@@ -53,6 +55,7 @@ export default function SellerPaymentsScreen() {
         <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={data?.items || []}
           keyExtractor={(i) => i.id}
           contentContainerStyle={styles.list}
@@ -138,7 +141,7 @@ const styles = StyleSheet.create({
   },
   title: { color: "#fff", fontSize: 20, fontWeight: "800" },
   sub: { color: "#ddd6fe", fontSize: 12, marginTop: 2 },
-  list: { padding: 12, paddingBottom: 110 },
+  list: { padding: 12, paddingBottom: 24 },
   hint: {
     backgroundColor: "#f5f3ff",
     borderRadius: 14,

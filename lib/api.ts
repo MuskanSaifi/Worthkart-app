@@ -407,6 +407,28 @@ export async function cancelAppOrder(token: string, orderId: string, reason?: st
   });
 }
 
+export async function confirmAppDelivery(token: string, orderId: string, otp: string) {
+  return authedRequest<{ success: boolean; status: string }>(
+    `/api/app/orders/${encodeURIComponent(orderId)}`,
+    token,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ action: "confirm_delivery", otp }),
+    }
+  );
+}
+
+export async function requestAppReturn(token: string, orderId: string, reason: string) {
+  return authedRequest<{ success: boolean }>(
+    `/api/app/orders/${encodeURIComponent(orderId)}/return`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }
+  );
+}
+
 export async function verifyAppPayment(token: string, orderId: string) {
   return authedRequest<{
     status: string;

@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "@/constants/theme";
+import { StatusBar } from "expo-status-bar";
 
 export function SellerScreenHeader({
   title,
@@ -23,6 +24,7 @@ export function SellerScreenHeader({
 
   return (
     <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      <StatusBar style="light" />
       <View style={styles.row}>
         {showBack ? (
           <Pressable onPress={goBack} style={styles.back} hitSlop={10}>

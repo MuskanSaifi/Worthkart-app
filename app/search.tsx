@@ -20,6 +20,7 @@ import { ProductGridCard } from "@/components/ProductGridCard";
 import { fetchCategories, fetchProductsFull } from "@/lib/api";
 import type { Product } from "@/lib/types";
 import { colors } from "@/constants/theme";
+import { useBottomInset } from "@/lib/safe-layout";
 
 export default function SearchScreen() {
   const params = useLocalSearchParams<{
@@ -29,6 +30,7 @@ export default function SearchScreen() {
     featured?: string;
   }>();
   const router = useRouter();
+  const bottom = useBottomInset();
   const [query, setQuery] = useState(params.q || "");
   const [sort, setSort] = useState("best");
   const [filters, setFilters] = useState<FilterState>(emptyFilterState());
@@ -163,7 +165,7 @@ export default function SearchScreen() {
           data={products}
           keyExtractor={(item) => item.id}
           numColumns={2}
-          contentContainerStyle={{ paddingBottom: 24 }}
+          contentContainerStyle={{ paddingBottom: 24 + bottom }}
           ListHeaderComponent={
             <Text style={styles.count}>{total} products</Text>
           }

@@ -14,10 +14,12 @@ import {
 import { useFocusEffect } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { useSeller } from "@/context/SellerContext";
 import {
   downloadSellerLabel,
   fetchSellerOrders,
+  simulateSellerCourierDelivered,
   updateSellerOrderStatus,
   type SellerOrderItem,
 } from "@/lib/seller-api";
@@ -25,6 +27,7 @@ import { formatPrice } from "@/lib/format";
 import { colors } from "@/constants/theme";
 import { notify } from "@/lib/notify";
 import { SellerTabBar } from "@/components/SellerTabBar";
+import { API_BASE_URL } from "@/lib/config";
 
 const FILTERS = [
   { key: "", label: "All" },
@@ -149,7 +152,7 @@ export default function SellerOrdersScreen() {
       if (res.labelUrl) {
         const url = res.labelUrl.startsWith("http")
           ? res.labelUrl
-          : res.labelUrl;
+          : `${API_BASE_URL}${res.labelUrl}`;
         await Linking.openURL(url);
       }
       notify.success(
@@ -176,9 +179,24 @@ export default function SellerOrdersScreen() {
     }
   };
 
+  const onMockDelivered = async (item: SellerOrderItem) => {
+    if (!seller?.token) return;
+    setBusyId(`mock-${item.id}`);
+    try {
+      await simulateSellerCourierDelivered(seller.token, item.id);
+      notify.success("Delivered", "Mock courier OTP confirmed");
+      await load();
+    } catch (e) {
+      notify.error("Delivered", e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusyId("");
+    }
+  };
+
   return (
-    <View style={[styles.page, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
+    <View style={styles.page}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <StatusBar style="light" />
         <View style={styles.headerTop}>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Orders</Text>
@@ -219,6 +237,7 @@ export default function SellerOrdersScreen() {
         <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={items}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
@@ -245,6 +264,9 @@ export default function SellerOrdersScreen() {
               !!item.awbCode ||
               item.order.status === "CONFIRMED" ||
               item.order.status === "PACKED";
+            const canMockDeliver =
+              item.order.status === "OUT_FOR_DELIVERY" &&
+              !!item.shiprocketShipmentId?.startsWith("MOCK-");
             const inactive =
               item.order.status === "CANCELLED" ||
               item.order.status === "RETURNED";
@@ -288,6 +310,11 @@ export default function SellerOrdersScreen() {
                         {item.courierName ? ` · ${item.courierName}` : ""}
                       </Text>
                     ) : null}
+                    {item.trackingUrl && !item.trackingUrl.endsWith("/orders") ? (
+                      <Pressable onPress={() => Linking.openURL(item.trackingUrl!)}>
+                        <Text style={styles.trackLink}>Track shipment</Text>
+                      </Pressable>
+                    ) : null}
                     {edd ? <Text style={styles.edd}>EDD: {edd}</Text> : null}
                     {item.order.status === "OUT_FOR_DELIVERY" ? (
                       <Text style={styles.hint}>
@@ -297,7 +324,7 @@ export default function SellerOrdersScreen() {
                   </View>
                 </View>
 
-                {!inactive && (next || canLabel) ? (
+                {!inactive && (next || canLabel || canMockDeliver) ? (
                   <View style={styles.actions}>
                     {next ? (
                       <Pressable
@@ -336,6 +363,19 @@ export default function SellerOrdersScreen() {
                                 : "Download label"}
                             </Text>
                           </>
+                        )}
+                      </Pressable>
+                    ) : null}
+                    {canMockDeliver ? (
+                      <Pressable
+                        style={styles.mockBtn}
+                        disabled={busyId === `mock-${item.id}`}
+                        onPress={() => onMockDelivered(item)}
+                      >
+                        {busyId === `mock-${item.id}` ? (
+                          <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                          <Text style={styles.mockText}>Test: courier OTP delivered</Text>
                         )}
                       </Pressable>
                     ) : null}
@@ -390,7 +430,7 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontSize: 12, fontWeight: "700", color: colors.foreground },
   chipTextOn: { color: "#fff" },
-  list: { padding: 12, paddingBottom: 110 },
+  list: { padding: 12, paddingBottom: 24 },
   emptyWrap: { alignItems: "center", marginTop: 56, paddingHorizontal: 24 },
   emptyIcon: {
     width: 64,
@@ -493,4 +533,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   labelText: { color: colors.foreground, fontWeight: "700", fontSize: 12 },
+  trackLink: { color: colors.primary, fontSize: 11, fontWeight: "700", marginTop: 4 },
+  mockBtn: {
+    backgroundColor: "#c2410c",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  mockText: { color: "#fff", fontWeight: "800", fontSize: 11 },
 });

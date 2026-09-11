@@ -1,6 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "@/constants/theme";
+import { useBottomInset } from "@/lib/safe-layout";
 
 export const SORT_OPTIONS = [
   { key: "best", label: "Best Match" },
@@ -34,6 +35,8 @@ export function ListingToolbar({
   onOpenFilters,
   activeFilterCount = 0,
 }: Props) {
+  const bottom = useBottomInset();
+
   return (
     <>
       <View style={styles.toolbar}>
@@ -68,7 +71,7 @@ export function ListingToolbar({
       >
         <View style={styles.sortOverlay}>
           <Pressable style={styles.sortBackdrop} onPress={onSortClose} />
-          <View style={styles.sortSheet}>
+          <View style={[styles.sortSheet, { paddingBottom: 16 + bottom }]}>
             <View style={styles.sortHandle} />
             <Text style={styles.sortTitle}>Sort by</Text>
             {SORT_OPTIONS.map((s) => (

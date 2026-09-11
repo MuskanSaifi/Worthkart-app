@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { useSeller } from "@/context/SellerContext";
 import {
   fetchSellerInventory,
@@ -83,8 +84,9 @@ export default function SellerInventoryScreen() {
   };
 
   return (
-    <View style={[styles.page, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
+    <View style={styles.page}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <StatusBar style="light" />
         <Text style={styles.title}>Price & Stock</Text>
         <Text style={styles.sub}>Tap a product to edit</Text>
       </View>
@@ -109,6 +111,7 @@ export default function SellerInventoryScreen() {
         <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={products}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
@@ -215,7 +218,7 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontSize: 12, fontWeight: "700", color: colors.foreground },
   chipTextOn: { color: "#fff" },
-  list: { paddingHorizontal: 12, paddingBottom: 100 },
+  list: { paddingHorizontal: 12, paddingBottom: 24 },
   empty: { textAlign: "center", color: colors.muted, marginTop: 40 },
   card: {
     flexDirection: "row",

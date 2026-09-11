@@ -11,6 +11,7 @@ import {
 import { useFocusEffect, useRouter } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { useSeller } from "@/context/SellerContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import { fetchSellerDashboard, type SellerDashboard } from "@/lib/seller-api";
@@ -98,8 +99,9 @@ export default function SellerDashboardScreen() {
   );
 
   return (
-    <View style={[styles.page, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
+    <View style={styles.page}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <StatusBar style="light" />
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{initial}</Text>
         </View>
@@ -131,6 +133,7 @@ export default function SellerDashboardScreen() {
         <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
         <ScrollView
+          style={{ flex: 1 }}
           contentContainerStyle={styles.scroll}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
           showsVerticalScrollIndicator={false}
@@ -263,7 +266,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  scroll: { padding: 16, paddingBottom: 110 },
+  scroll: { padding: 16, paddingBottom: 24 },
   metrics: { flexDirection: "row", gap: 10 },
   metricCard: {
     flex: 1,

@@ -31,7 +31,9 @@ export type Banner = {
   appImage?: string | null;
   link?: string | null;
   bgColor?: string | null;
+  textColor?: string | null;
   ctaLabel?: string | null;
+  variant?: string;
   placement: string;
 };
 
@@ -78,6 +80,10 @@ export type Order = {
     id: string;
     quantity: number;
     price: number;
+    awbCode?: string | null;
+    courierName?: string | null;
+    trackingUrl?: string | null;
     product: Product;
+    returnRequests?: { status: string }[];
   }[];
 };

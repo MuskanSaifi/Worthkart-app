@@ -4,9 +4,11 @@ import { AppHeader } from "@/components/AppHeader";
 import { ProductCard } from "@/components/ProductCard";
 import { colors } from "@/constants/theme";
 import { useShop } from "@/context/ShopContext";
+import { useBottomInset } from "@/lib/safe-layout";
 
 export default function WishlistScreen() {
   const { wishlist } = useShop();
+  const bottom = useBottomInset();
 
   return (
     <View style={styles.page}>
@@ -27,7 +29,7 @@ export default function WishlistScreen() {
           keyExtractor={(item) => item.id}
           numColumns={2}
           columnWrapperStyle={{ gap: 10, paddingHorizontal: 12 }}
-          contentContainerStyle={{ paddingVertical: 12, gap: 10, paddingBottom: 28 }}
+          contentContainerStyle={{ paddingVertical: 12, gap: 10, paddingBottom: 28 + bottom }}
           renderItem={({ item }) => (
             <View style={{ flex: 1 }}>
               <ProductCard product={item} wide />

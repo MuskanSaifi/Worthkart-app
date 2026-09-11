@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { useSeller } from "@/context/SellerContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import { SellerTabBar } from "@/components/SellerTabBar";
@@ -26,14 +27,15 @@ export default function SellerMoreScreen() {
   };
 
   return (
-    <View style={[styles.page, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
+    <View style={styles.page}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <StatusBar style="light" />
         <Text style={styles.eyebrow}>ALL TOOLS</Text>
         <Text style={styles.title}>{seller?.businessName || "Seller Hub"}</Text>
         <Text style={styles.sub}>Grouped like your website sidebar</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         {SELLER_MORE_GROUPS.map((group) => (
           <View key={group.title} style={styles.group}>
             <Text style={styles.groupTitle}>{group.title}</Text>
@@ -79,7 +81,7 @@ const styles = StyleSheet.create({
   eyebrow: { color: "#c4b5fd", fontSize: 10, fontWeight: "800", letterSpacing: 1 },
   title: { color: "#fff", fontSize: 20, fontWeight: "800", marginTop: 2 },
   sub: { color: "#ddd6fe", fontSize: 12, marginTop: 2 },
-  list: { padding: 14, paddingBottom: 110 },
+  list: { padding: 14, paddingBottom: 24 },
   group: { marginBottom: 14 },
   groupTitle: {
     fontSize: 12,

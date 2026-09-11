@@ -1,12 +1,14 @@
 import { Image } from "expo-image";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { AppHeader } from "@/components/AppHeader";
@@ -14,24 +16,36 @@ import { OrderTrackingProgress } from "@/components/OrderTrackingProgress";
 import { colors } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { useConfirm } from "@/context/ConfirmContext";
+import { useShop } from "@/context/ShopContext";
 import {
   cancelAppOrder,
+  confirmAppDelivery,
   downloadAppOrderInvoice,
   fetchAppOrder,
+  requestAppReturn,
   type OrderDetailResponse,
 } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { getTrackingHeadline, STATUS_BADGE } from "@/lib/order-status";
 import { notify } from "@/lib/notify";
+import { useBottomInset } from "@/lib/safe-layout";
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { user } = useAuth();
   const confirm = useConfirm();
+  const { addToCart } = useShop();
+  const bottom = useBottomInset();
   const [data, setData] = useState<OrderDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [showReturn, setShowReturn] = useState(false);
+  const [returnReason, setReturnReason] = useState("");
+  const [returnLoading, setReturnLoading] = useState(false);
 
   const load = useCallback(async () => {
     if (!user?.token || !id) return;
@@ -86,6 +100,62 @@ export default function OrderDetailScreen() {
     }
   };
 
+  const onConfirmDelivery = async () => {
+    if (!user?.token || !order) return;
+    const code = otp.replace(/\D/g, "");
+    if (code.length < 4) {
+      notify.error("OTP", "Enter the 4-digit delivery OTP");
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      await confirmAppDelivery(user.token, order.id, code);
+      notify.success("Delivered", "Delivery confirmed with OTP");
+      setOtp("");
+      await load();
+    } catch (e) {
+      notify.error("OTP", e instanceof Error ? e.message : "Invalid or expired OTP");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const onReturn = async () => {
+    if (!user?.token || !order) return;
+    if (returnReason.trim().length < 5) {
+      notify.error("Return", "Please write a reason (min 5 characters)");
+      return;
+    }
+    setReturnLoading(true);
+    try {
+      await requestAppReturn(user.token, order.id, returnReason.trim());
+      notify.success("Return requested", "Seller will review your request");
+      setShowReturn(false);
+      setReturnReason("");
+      await load();
+    } catch (e) {
+      notify.error("Return", e instanceof Error ? e.message : "Failed");
+    } finally {
+      setReturnLoading(false);
+    }
+  };
+
+  const onReorder = () => {
+    if (!order) return;
+    let added = 0;
+    for (const item of order.items) {
+      if (!item.product?.id) continue;
+      addToCart(item.product, item.quantity);
+      added += 1;
+    }
+    if (!added) {
+      notify.error("Reorder", "Items are no longer available");
+      return;
+    }
+    notify.success("Added to cart", `${added} item${added > 1 ? "s" : ""} added`);
+    router.push("/(tabs)/cart");
+  };
+
   if (loading) {
     return (
       <View style={styles.page}>
@@ -107,11 +177,12 @@ export default function OrderDetailScreen() {
   const badge = STATUS_BADGE[order.status] || { bg: "#f3f4f6", text: "#4b5563" };
   const headline = getTrackingHeadline(order.status, order.estimatedDeliveryAt);
   const showRefund = order.paymentStatus === "REFUNDED" || !!order.refundId;
+  const shippedItems = order.items.filter((i) => !!i.awbCode);
 
   return (
     <View style={styles.page}>
       <AppHeader showBack showSearch={false} title="Order details" />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 32 + bottom }]}>
         <View style={styles.card}>
           <Text style={styles.orderNo}>{order.orderNumber}</Text>
           <Text style={styles.date}>
@@ -122,6 +193,17 @@ export default function OrderDetailScreen() {
               year: "numeric",
             })}
           </Text>
+          {order.estimatedDeliveryAt && order.status !== "DELIVERED" && order.status !== "CANCELLED" ? (
+            <Text style={styles.edd}>
+              Estimated delivery:{" "}
+              {new Date(order.estimatedDeliveryAt).toLocaleDateString("en-IN", {
+                weekday: "short",
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </Text>
+          ) : null}
           <View style={[styles.badge, { backgroundColor: badge.bg, alignSelf: "flex-start" }]}>
             <Text style={[styles.badgeText, { color: badge.text }]}>{headline}</Text>
           </View>
@@ -132,6 +214,55 @@ export default function OrderDetailScreen() {
                 status={order.status}
                 estimatedDeliveryAt={order.estimatedDeliveryAt}
               />
+            </View>
+          ) : null}
+
+          {shippedItems.length > 0 ? (
+            <View style={styles.shipBox}>
+              <Text style={styles.sectionTitle}>Delivery partner</Text>
+              {shippedItems.map((item) => (
+                <View key={item.id} style={styles.shipRow}>
+                  <Text style={styles.shipName}>
+                    {item.courierName || "Courier"} · AWB {item.awbCode}
+                  </Text>
+                  {item.trackingUrl && !item.trackingUrl.endsWith("/orders") ? (
+                    <Pressable onPress={() => Linking.openURL(item.trackingUrl!)}>
+                      <Text style={styles.trackLink}>Track on partner site</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {order.deliveryOtpPending ? (
+            <View style={styles.otpBox}>
+              <Text style={styles.otpTitle}>Confirm delivery with OTP</Text>
+              <Text style={styles.otpSub}>
+                Delivery partner ke aane par jo 4-digit OTP SMS/email pe aaya hai, yahan enter karein.
+              </Text>
+              <View style={styles.otpRow}>
+                <TextInput
+                  value={otp}
+                  onChangeText={(t) => setOtp(t.replace(/\D/g, "").slice(0, 4))}
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  placeholder="4-digit OTP"
+                  placeholderTextColor={colors.muted}
+                  style={styles.otpInput}
+                />
+                <Pressable
+                  style={[styles.otpBtn, otp.length < 4 && styles.otpBtnOff]}
+                  onPress={onConfirmDelivery}
+                  disabled={otpLoading || otp.length < 4}
+                >
+                  {otpLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.otpBtnText}>Confirm</Text>
+                  )}
+                </Pressable>
+              </View>
             </View>
           ) : null}
 
@@ -168,6 +299,7 @@ export default function OrderDetailScreen() {
 
           {order.items.map((item, index) => {
             const img = item.product.images?.[0]?.url;
+            const returnStatus = item.returnRequests?.[0]?.status;
             return (
               <View key={item.id || index} style={styles.line}>
                 <View style={styles.thumb}>
@@ -178,6 +310,15 @@ export default function OrderDetailScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.lineName}>{item.product.name}</Text>
                   <Text style={styles.lineQty}>Qty: {item.quantity}</Text>
+                  {item.awbCode ? (
+                    <Text style={styles.lineAwb}>
+                      AWB {item.awbCode}
+                      {item.courierName ? ` · ${item.courierName}` : ""}
+                    </Text>
+                  ) : null}
+                  {returnStatus ? (
+                    <Text style={styles.returnChip}>Return: {returnStatus}</Text>
+                  ) : null}
                 </View>
                 <Text style={styles.linePrice}>{formatPrice(item.price * item.quantity)}</Text>
               </View>
@@ -189,26 +330,78 @@ export default function OrderDetailScreen() {
             <Text style={styles.totalValue}>{formatPrice(order.total)}</Text>
           </View>
 
-          {actions?.canCancel ? (
-            <Pressable style={styles.cancelBtn} onPress={onCancel} disabled={cancelLoading}>
-              {cancelLoading ? (
-                <ActivityIndicator color={colors.danger} />
-              ) : (
-                <Text style={styles.cancelText}>Cancel order</Text>
-              )}
-            </Pressable>
-          ) : null}
+          <View style={styles.actions}>
+            {actions?.canDownloadInvoice ? (
+              <Pressable style={styles.invoiceBtn} onPress={onInvoice} disabled={invoiceLoading}>
+                {invoiceLoading ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : (
+                  <Text style={styles.invoiceText}>Tax Invoice (PDF)</Text>
+                )}
+              </Pressable>
+            ) : null}
+            {actions?.canReorder ? (
+              <Pressable style={styles.invoiceBtn} onPress={onReorder}>
+                <Text style={styles.invoiceText}>Reorder</Text>
+              </Pressable>
+            ) : null}
+            {actions?.canCancel ? (
+              <Pressable style={styles.cancelBtn} onPress={onCancel} disabled={cancelLoading}>
+                {cancelLoading ? (
+                  <ActivityIndicator color={colors.danger} />
+                ) : (
+                  <Text style={styles.cancelText}>Cancel order</Text>
+                )}
+              </Pressable>
+            ) : null}
+            {actions?.canReturn ? (
+              <Pressable style={styles.invoiceBtn} onPress={() => setShowReturn((v) => !v)}>
+                <Text style={styles.invoiceText}>
+                  {showReturn ? "Close return" : "Request return"}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
 
-          {actions?.canDownloadInvoice ? (
-            <Pressable style={styles.invoiceBtn} onPress={onInvoice} disabled={invoiceLoading}>
-              {invoiceLoading ? (
-                <ActivityIndicator color={colors.primary} />
-              ) : (
-                <Text style={styles.invoiceText}>Download Tax Invoice (PDF)</Text>
-              )}
-            </Pressable>
+          {showReturn ? (
+            <View style={styles.returnBox}>
+              <TextInput
+                value={returnReason}
+                onChangeText={setReturnReason}
+                placeholder="Why are you returning this order?"
+                placeholderTextColor={colors.muted}
+                multiline
+                style={styles.returnInput}
+              />
+              <Pressable
+                style={[styles.otpBtn, returnReason.trim().length < 5 && styles.otpBtnOff]}
+                onPress={onReturn}
+                disabled={returnLoading || returnReason.trim().length < 5}
+              >
+                {returnLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.otpBtnText}>Submit return request</Text>
+                )}
+              </Pressable>
+            </View>
           ) : null}
         </View>
+
+        {order.address ? (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Delivery address</Text>
+            <Text style={styles.addrName}>{order.address.name}</Text>
+            <Text style={styles.addrLine}>
+              {order.address.line1}
+              {order.address.line2 ? `, ${order.address.line2}` : ""}
+            </Text>
+            <Text style={styles.addrLine}>
+              {order.address.city}, {order.address.state} - {order.address.pincode}
+            </Text>
+            <Text style={styles.addrLine}>{order.address.phone}</Text>
+          </View>
+        ) : null}
 
         {order.events && order.events.length > 0 ? (
           <View style={styles.card}>
@@ -242,10 +435,55 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   orderNo: { fontSize: 16, fontWeight: "800" },
-  date: { fontSize: 12, color: colors.muted, marginTop: 4, marginBottom: 10 },
-  badge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, marginBottom: 8 },
+  date: { fontSize: 12, color: colors.muted, marginTop: 4 },
+  edd: { fontSize: 12, fontWeight: "700", color: colors.primary, marginTop: 6, marginBottom: 8 },
+  badge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, marginBottom: 8, marginTop: 8 },
   badgeText: { fontSize: 11, fontWeight: "700" },
   tracker: { marginTop: 8, marginBottom: 12 },
+  shipBox: {
+    backgroundColor: "#f9fafb",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  shipRow: { marginTop: 6 },
+  shipName: { fontSize: 13, fontWeight: "700", color: colors.foreground },
+  trackLink: { color: colors.primary, fontSize: 12, fontWeight: "700", marginTop: 4 },
+  otpBox: {
+    backgroundColor: "#fffbeb",
+    borderWidth: 1,
+    borderColor: "#fde68a",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  otpTitle: { fontWeight: "800", color: "#92400e", fontSize: 14 },
+  otpSub: { color: "#b45309", fontSize: 12, marginTop: 4, lineHeight: 17 },
+  otpRow: { flexDirection: "row", gap: 8, marginTop: 10, alignItems: "center" },
+  otpInput: {
+    width: 120,
+    borderWidth: 1,
+    borderColor: "#fcd34d",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: 2,
+    backgroundColor: "#fff",
+    color: colors.foreground,
+  },
+  otpBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 96,
+  },
+  otpBtnOff: { opacity: 0.45 },
+  otpBtnText: { color: "#fff", fontWeight: "800", fontSize: 13 },
   refundBox: {
     backgroundColor: "#ecfdf5",
     borderWidth: 1,
@@ -284,6 +522,8 @@ const styles = StyleSheet.create({
   thumbImg: { width: "100%", height: "100%" },
   lineName: { fontSize: 13, fontWeight: "600" },
   lineQty: { fontSize: 11, color: colors.muted, marginTop: 2 },
+  lineAwb: { fontSize: 11, color: colors.primary, marginTop: 3, fontWeight: "600" },
+  returnChip: { fontSize: 11, color: "#b45309", marginTop: 3, fontWeight: "700" },
   linePrice: { fontWeight: "700" },
   totalRow: {
     flexDirection: "row",
@@ -295,6 +535,7 @@ const styles = StyleSheet.create({
   },
   totalLabel: { color: colors.muted },
   totalValue: { fontSize: 17, fontWeight: "800" },
+  actions: { marginTop: 8 },
   cancelBtn: {
     marginTop: 14,
     borderWidth: 1,
@@ -313,6 +554,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   invoiceText: { color: colors.primary, fontWeight: "800" },
+  returnBox: { marginTop: 12 },
+  returnInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 10,
+    minHeight: 80,
+    textAlignVertical: "top",
+    color: colors.foreground,
+    fontSize: 13,
+    marginBottom: 8,
+  },
+  addrName: { fontWeight: "700", fontSize: 14, color: colors.foreground },
+  addrLine: { color: colors.muted, fontSize: 13, marginTop: 3, lineHeight: 18 },
   sectionTitle: {
     fontSize: 12,
     fontWeight: "800",

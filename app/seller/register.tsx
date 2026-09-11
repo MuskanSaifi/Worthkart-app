@@ -10,9 +10,9 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppHeader } from "@/components/AppHeader";
 import { verifyOtp } from "@/lib/api";
+import { useBottomInset } from "@/lib/safe-layout";
 import {
   registerSellerStep1,
   registerSellerStep2,
@@ -31,7 +31,7 @@ const BUSINESS_TYPES = [
 ];
 
 export default function SellerRegisterScreen() {
-  const insets = useSafeAreaInsets();
+  const bottom = useBottomInset();
   const router = useRouter();
   const [step, setStep] = useState<1 | 2>(1);
   const [userId, setUserId] = useState("");
@@ -208,7 +208,7 @@ export default function SellerRegisterScreen() {
   };
 
   return (
-    <View style={[styles.page, { paddingTop: insets.top }]}>
+    <View style={styles.page}>
       <AppHeader showBack showSearch={false} title="Seller Register" />
 
       <View style={styles.stepper}>
@@ -217,7 +217,7 @@ export default function SellerRegisterScreen() {
         <Text style={[styles.stepLabel, step === 2 && styles.stepOn]}>2. Business</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 40 + bottom }]} keyboardShouldPersistTaps="handled">
         {step === 1 ? (
           <>
             <Text style={styles.label}>Mobile Number *</Text>

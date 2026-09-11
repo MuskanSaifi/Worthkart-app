@@ -10,8 +10,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "@/constants/theme";
+import { useBottomInset } from "@/lib/safe-layout";
 
 export type FilterState = {
   brands: string[];
@@ -102,7 +102,7 @@ export function FilterModal({
   onClearAll,
   initialSection = "Category",
 }: Props) {
-  const insets = useSafeAreaInsets();
+  const bottom = useBottomInset();
   const [draft, setDraft] = useState(value);
   const [section, setSection] = useState<FilterSection>(initialSection);
   const [q, setQ] = useState("");
@@ -136,7 +136,7 @@ export function FilterModal({
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={onClose} />
 
-        <View style={[styles.sheet, { height: SHEET_H, paddingBottom: insets.bottom }]}>
+        <View style={[styles.sheet, { height: SHEET_H, paddingBottom: Math.max(bottom, 12) }]}>
           <View style={styles.handleWrap}>
             <View style={styles.handle} />
           </View>

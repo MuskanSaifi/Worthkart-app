@@ -1,8 +1,8 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "@/constants/theme";
+import { TAB_BAR_BODY, useBottomInset } from "@/lib/safe-layout";
 
 export type SellerTab = "home" | "orders" | "payments" | "inventory" | "more";
 
@@ -20,11 +20,11 @@ const TABS: {
 ];
 
 export function SellerTabBar({ active }: { active: SellerTab }) {
-  const insets = useSafeAreaInsets();
+  const bottom = useBottomInset();
   const router = useRouter();
 
   return (
-    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 6) }]}>
+    <View style={[styles.wrap, { paddingBottom: bottom, height: TAB_BAR_BODY + bottom }]}>
       <View style={styles.bar}>
         {TABS.map((tab) => {
           const on = tab.key === active;
@@ -34,7 +34,7 @@ export function SellerTabBar({ active }: { active: SellerTab }) {
               style={styles.item}
               onPress={() => {
                 if (on) return;
-                router.replace(tab.href as any);
+                router.replace(tab.href as never);
               }}
               accessibilityRole="tab"
               accessibilityState={{ selected: on }}
@@ -59,22 +59,14 @@ export function SellerTabBar({ active }: { active: SellerTab }) {
 
 const styles = StyleSheet.create({
   wrap: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: colors.card,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
     paddingTop: 6,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: -2 },
-    elevation: 8,
+    elevation: 12,
   },
-  bar: { flexDirection: "row", paddingHorizontal: 4 },
-  item: { flex: 1, alignItems: "center", gap: 3, paddingVertical: 2 },
+  bar: { flex: 1, flexDirection: "row", paddingHorizontal: 4, alignItems: "center" },
+  item: { flex: 1, alignItems: "center", gap: 3 },
   iconWrap: {
     width: 36,
     height: 28,

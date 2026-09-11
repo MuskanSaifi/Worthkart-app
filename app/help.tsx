@@ -1,6 +1,7 @@
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { AppHeader } from "@/components/AppHeader";
 import { colors } from "@/constants/theme";
+import { useBottomInset } from "@/lib/safe-layout";
 
 const FAQS = [
   {
@@ -22,10 +23,11 @@ const FAQS = [
 ];
 
 export default function HelpScreen() {
+  const bottom = useBottomInset();
   return (
     <View style={styles.page}>
       <AppHeader showBack showSearch={false} title="Help & Support" />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 32 + bottom }]}>
         <View style={styles.banner}>
           <Text style={styles.bannerTitle}>24x7 Customer Care</Text>
           <Text style={styles.bannerSub}>We’re here for orders, returns, and account help.</Text>
